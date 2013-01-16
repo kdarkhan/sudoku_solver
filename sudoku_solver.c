@@ -1,8 +1,24 @@
+/*
+* author: Darkhan Kubigenov
+*
+* The code solves sudoku puzzles
+* given to stdin
+* First the user needs to enter number of puzzles
+*	and then all the puzzles. 
+* An empty cell is represented by any number less than 1
+* 	or greater than 9
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 
+//constant - number with 9 ones in binary representation
 int NINE_ONES = (1<<9) - 1;
+
+//mutex to lock stdout
+pthread_mutex_t mutex_stdout;
+
 /*
 * Allocates memory to be used to store a puzzle
 */
@@ -61,10 +77,10 @@ int is_singleton(int number)
 	    	found++;
 		check <<= 1;
     }
-    // TODO: debugging, delete later
+    // This happens if the number is invalid and has no ones in 9 least significant bits
     if(found < 1)
     {
-		printf("Something is wrong with the number in is_singleton: %d\n", number);
+		fprintf(stderr, "Wrong input in is_singleton: %d\n", number);
 		return 0;
     }
     return (found == 1) ? 1:0; 
@@ -72,7 +88,7 @@ int is_singleton(int number)
 
 /*
 * Given an index the function returns the left/upper index of 3x3 box
-* inside which cells with the index lies
+* inside which a cell with the given index lies
 */
 int get_box_start_index(int index)
 {
@@ -93,7 +109,7 @@ int is_legal_puzzle(int ** puzzle)
     	for(j=0; j<9; j++)
 		{
 			int value = puzzle[i][j];
-			if( value>0 && value<=9)
+			if( value>0 && value<=9) //if the cell is not empty
 				{
 					int k, l;
 					for(k=0; k<9; k++)
@@ -107,6 +123,7 @@ int is_legal_puzzle(int ** puzzle)
 							if(value == puzzle[k][j])
 								return 0;
 					}
+					// check 3x3 box
 					int ii = get_box_start_index(i);
 					int jj = get_box_start_index(j);
 					for(k=ii; k<ii+3; k++)
@@ -315,6 +332,13 @@ void print_puzzle(int ** puzzle)
 
 void solve_sudoku(int ** puzzle)
 {
+	// check if the puzzle is legal
+	if(!is_legal_puzzle(puzzle))
+	{
+		fprintf(stderr, "Illegal puzzle input\n");
+		return;
+	}
+
     int ** puzzle_transformed = get_puzzle_mem();
     transform(puzzle, puzzle_transformed);
 
@@ -334,12 +358,27 @@ int main(int argc, char ** argv)
 {
 
 
-    int numpuzzles;
-    scanf("%d", &numpuzzles);
+    int puzzles_count;
+    scanf("%d", &puzzles_count);
 
-    int *** puzzles = malloc(sizeof(int **) * numpuzzles);
+	pthread_mutex_init(&mutex_stdout, NULL); // initialize the mutex
+
+	// check the correctness of puzzles_count
+	if(puzzles_count > 50)
+	{
+		fprintf(stderr, "Too many puzzles to solve.\n");
+		return 1;
+	}
+	if(puzzles_count < 1)
+	{
+		fprintf(stderr, "Too few puzzles to solve.\n");
+		return 1;
+	}
+
+	// allocate memory to store pointers to puzzles
+    int *** puzzles = malloc(sizeof(int **) * puzzles_count);
     int i;
-    for(i=0; i<numpuzzles; i++)
+    for(i=0; i<puzzles_count; i++)
     {
 		puzzles[i] = get_puzzle_mem();
 		int j;
@@ -354,13 +393,14 @@ int main(int argc, char ** argv)
     }
 
 	printf("Solved puzzles:\n");
-    for(i=0; i<numpuzzles; i++)
+    for(i=0; i<puzzles_count; i++)
     {
 		solve_sudoku(puzzles[i]);
 		free_puzzle_mem(puzzles[i]);
     }
 
 
+	pthread_mutex_destroy(&mutex_stdout);
 	free(puzzles);
     return 0;
 }
