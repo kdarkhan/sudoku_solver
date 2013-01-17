@@ -136,6 +136,22 @@ int is_legal_puzzle(int ** puzzle)
 	}
 	return 1; //no errors, so the puzzle is legal
 }
+
+/*
+* returns 1 if the puzzle is solved
+* and returns 0 otherwise
+*/
+int is_solved_puzzle(int ** puzzle)
+{
+	int i, j;
+	for(i=0; i<9; i++)
+		for(j=0; j<9; j++)
+			if(is_singleton(puzzle[i][j])!=0)
+				return 0;
+	return 1;
+}
+
+
 /*
 * Given the number used in sudoku solver method_one
 * the function returns number represented by it
@@ -297,6 +313,11 @@ void transform(int ** original, int ** result)
 }
 
 
+/*
+* before printing every cell to stdout
+* translates the representation used in program
+* to a human readable integer number
+*/
 void print_puzzle_transformed(int ** puzzle)
 {
 	int i;
@@ -311,6 +332,10 @@ void print_puzzle_transformed(int ** puzzle)
 	}
 }
 
+/*
+* prints the puzzle directly to stdout
+* without modifying the value of the integer
+*/
 void print_puzzle(int ** puzzle)
 {
 	int i;
@@ -325,6 +350,10 @@ void print_puzzle(int ** puzzle)
 	}
 }
 
+/*
+* iteratively calls methods one and two
+* until that calls make any changes
+*/
 void solve_sudoku(int ** puzzle)
 {
 	// check if the puzzle is legal
@@ -339,7 +368,7 @@ void solve_sudoku(int ** puzzle)
 	while(1)
 	{
 		int changed = method_one(puzzle_transformed);
-		changed &= method_one(puzzle_transformed);
+		changed |= method_one(puzzle_transformed);
 		if(!changed)
 			break;
 	}
